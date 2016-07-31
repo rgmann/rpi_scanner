@@ -1,0 +1,37 @@
+package ScannerRpc;
+
+message Request {
+
+  enum ScannerMode {
+    IDLE = 0;
+    POINT = 1;
+    RASTER = 2;
+  }
+  required ScannerMode mode = 1;
+
+  message ScannerPoint {
+    required double phi = 1;
+    required double theta = 2;
+  }
+  optional ScannerPoint set_point = 2;
+
+  message RasterOptions {
+    optional float min_phi = 1;
+    optional float max_phi = 2;
+    optional float min_theta = 3;
+    optional float max_theta = 4;
+    optional int32 measure_delay_ms = 5;
+    optional float increment = 6;
+  }
+  optional RasterOptions raster_options = 3; 
+}
+
+message Response {
+  required bool success = 1;
+  required string error = 2;
+}
+
+service ScannerService {
+  rpc SetMode (Request) returns (Response);
+}
+
