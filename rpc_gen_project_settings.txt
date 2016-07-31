@@ -1,0 +1,9 @@
+PROTO_ROOT_PATH=proto
+SERVICE_GEN_ROOT_PATH=rpc_stage
+MESSAGE_GEN_ROOT_PATH=rpc_stage
+CLIENT_SERVICE_HEADER_OUT_PATH=client/rpc_include
+CLIENT_SERVICE_SOURCE_OUT_PATH=client/rpc_source
+SERVER_SERVICE_HEADER_OUT_PATH=server/rpc_include
+SERVER_SERVICE_SOURCE_OUT_PATH=server/rpc_source
+MESSAGE_HEADER_OUT_PATH=common/rpc_include
+MESSAGE_SOURCE_OUT_PATH=common/rpc_source
