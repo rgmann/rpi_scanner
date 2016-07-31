@@ -41,7 +41,7 @@ add_library( scanner_common STATIC
    ads1115_interface.cpp
    pan_tilt_controller.cpp
    pan_tilt_thread.cpp
-   sharp_range_sensor.cpp )
+   lidar_lite.cpp )
 
 add_executable(
    pan_tilt_util

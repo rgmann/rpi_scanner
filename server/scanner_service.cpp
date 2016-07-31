@@ -19,7 +19,7 @@
 #include "pwm_controller.h"
 #include "ads1115_interface.h"
 #include "pan_tilt_controller.h"
-#include "sharp_range_sensor.h"
+#include "lidar_lite.h"
 #include "pan_tilt_thread.h"
 
 #include "PacketSubscriber.h"
@@ -292,10 +292,11 @@ int main( int argc, char** argv )
             // if ( pwm.set_frequency( PWM_FREQ_HZ ) )
             {
                PanTiltController pan_tilt( &pwm, PAN_CHANNEL, TILT_CHANNEL );
-               SharpRangeSensor  short_range( &adc, 0, 0.43f, 2.41f, 20.0f, 150.0f );
-               SharpRangeSensor  long_range( &adc, 1, 1.45f, 2.46f, 100.0f, 500.0f );
+               // SharpRangeSensor  short_range( &adc, 0, 0.43f, 2.41f, 20.0f, 150.0f );
+               // SharpRangeSensor  long_range( &adc, 1, 1.45f, 2.46f, 100.0f, 500.0f );
+               LidarLite lidar( i2c );
 
-               PanTiltThread pan_tilt_thread( pan_tilt, short_range, long_range );
+               PanTiltThread pan_tilt_thread( pan_tilt, lidar );
                pan_tilt_thread.launch();
 
                // Star listening for connections.

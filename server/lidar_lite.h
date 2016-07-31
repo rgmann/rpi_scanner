@@ -14,7 +14,7 @@ public:
    bool good() const { read_mode_status() & 0x20; };
    bool busy() const { read_mode_status() & 0x01 };
 
-   int distance( bool corrected = true );
+   int get_range( bool corrected = true );
 
    uint8_t read_mode_status();
 

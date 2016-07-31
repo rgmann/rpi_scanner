@@ -37,7 +37,6 @@
 #define  PAN_TILT_THREAD_H
 
 class PanTiltController;
-// class SharpRangeSensor;
 class LidarLite;
 
 class PanTiltThread : public coral::thread::IThread {
@@ -55,7 +54,6 @@ public:
       virtual void operator()( const Point& point ) = 0;
    };
 
-   // PanTiltThread( PanTiltController& controller, SharpRangeSensor& short_range, SharpRangeSensor& long_range );
    PanTiltThread( PanTiltController& controller, LidarLite& lidar );
 
    enum ControlMode {
@@ -85,8 +83,6 @@ private:
 private:
 
    PanTiltController& controller_;
-   // SharpRangeSensor& short_range_;
-   // SharpRangeSensor& long_range_;
    LidarLite& lidar_;
 
    ControlMode mode_;

@@ -44,7 +44,7 @@
 
 #include "Log.h"
 #include "pan_tilt_controller.h"
-#include "sharp_range_sensor.h"
+#include "lidar_lite.h"
 #include "pan_tilt_thread.h"
 
 using namespace coral;
@@ -53,13 +53,11 @@ using namespace coral::thread;
 //-----------------------------------------------------------------------------
 PanTiltThread::PanTiltThread(
    PanTiltController& controller,
-   SharpRangeSensor& short_range,
-   SharpRangeSensor& long_range
+   LidrLite& lidar
 )
    : IThread( "pan_tilt_thread" )
    , controller_( controller )
-   , short_range_( short_range )
-   , long_range_( long_range )
+   , lidar_( lidar )
    , mode_( PanTiltThread::kIdle )
    , callback_ptr_( NULL )
    , measure_duration_ms_( 38 )
@@ -210,10 +208,10 @@ void PanTiltThread::run( const bool& shutdown )
       // {
       //    (*callback_ptr_)( point );
       // }
-      int distance = -1;
-      if ( callback_ptr_ && ( ( distance = lidar_.distance( point.r, in_range ) ) >= 0 ) )
+      int range = -1;
+      if ( callback_ptr_ && ( ( distance = lidar_.get_range( point.r, in_range ) ) >= 0 ) )
       {
-         point.r = distance;
+         point.r = range;
          (*callback_ptr_)( point );
       }
    }

@@ -19,7 +19,7 @@ uint8_t LidarLite::read_mode_status()
 }
 
 //-----------------------------------------------------------------------------
-int LidarLite::distance( bool corrected )
+int LidarLite::get_range( bool corrected )
 {
    int distance = -1;
 
