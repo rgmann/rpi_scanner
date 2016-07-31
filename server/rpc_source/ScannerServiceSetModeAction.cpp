@@ -41,7 +41,7 @@ void ScannerServiceSetModeAction::operator() (
    }
    else
    {
-      e.id = MissingParameters;
+      e.id = kMissingParameters;
       e.message = "Parameters not initialized";
    }
 }
@@ -52,6 +52,6 @@ void ScannerServiceSetModeAction::SetMode(
    Response& response,
    coral::rpc::RpcException& e )
 {
-   e.id = UnimplementedAction;
+   e.id = kUnimplementedAction;
    e.message = "ScannerServiceSetModeAction has not been implemented.";
 }

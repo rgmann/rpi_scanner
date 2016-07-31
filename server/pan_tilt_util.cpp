@@ -66,16 +66,17 @@ private:
 
 class RangeCommand : public InteractiveCommand {
 public:
-   LongRangeCommand( LidarLite& lidar )
+   RangeCommand( LidarLite& lidar )
       : InteractiveCommand( "range", "Read ranging sensor" )
       , lidar_( lidar ) {};
    void process(const coral::cli::ArgumentList& args)
    {
-      float range_cm = 0;
-      bool in_range = false;
-      if ( range_.get_range( range_cm, in_range ) )
+      int range = -1;
+      log::status("lidar mode/status = 0x%02X\n",lidar_.read_mode_status());
+      log::status("lidar health/status = 0x%02X\n",lidar_.read_health_status());
+      if ( ( range = lidar_.get_range()) > 0 )
       {
-         log::status("%0.6f cm\n",range_cm);
+         log::status("range = %d\n",range);
       }
       else {
          log::error("Failed reading range from sensor\n");
@@ -86,6 +87,16 @@ private:
    LidarLite& lidar_;
 };
 
+class PointCallback : public PanTiltThread::MeasurementCallback {
+public:
+
+   void operator()( PanTiltThread::ControlMode mode, const PanTiltThread::Point& point )
+   {
+      if ( mode == PanTiltThread::kRaster )
+         log::status("phi = %0.4f, theta = %0.4f, r = %0.6f\n",point.phi,point.theta,point.r);
+   }
+
+};
 
 int main( int argc, char** argv )
 {
@@ -153,6 +164,8 @@ int main( int argc, char** argv )
             LidarLite lidar( i2c );
 
             PanTiltThread pan_tilt_thread( pan_tilt, lidar );
+	    PointCallback point_callback;
+	    pan_tilt_thread.set_callback( &point_callback );
             pan_tilt_thread.launch();
 
             IdleCommand idle_command( pan_tilt_thread );
@@ -163,7 +176,6 @@ int main( int argc, char** argv )
             command_router.add( &idle_command );
             command_router.add( &raster_command );
             command_router.add( &point_command );
-            command_router.add( &lidar );
             command_router.add( &range_command );
 
             command_router.run();

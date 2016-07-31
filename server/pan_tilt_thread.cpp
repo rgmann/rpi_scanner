@@ -53,14 +53,14 @@ using namespace coral::thread;
 //-----------------------------------------------------------------------------
 PanTiltThread::PanTiltThread(
    PanTiltController& controller,
-   LidrLite& lidar
+   LidarLite& lidar
 )
    : IThread( "pan_tilt_thread" )
    , controller_( controller )
    , lidar_( lidar )
    , mode_( PanTiltThread::kIdle )
    , callback_ptr_( NULL )
-   , measure_duration_ms_( 38 )
+   , measure_duration_ms_( 100 )
    , phi_raster_direction_( PanTiltThread::kIncreasing )
    , theta_raster_direction_( PanTiltThread::kIncreasing )
    , stare_phi_( 0.0 )
@@ -208,11 +208,9 @@ void PanTiltThread::run( const bool& shutdown )
       // {
       //    (*callback_ptr_)( point );
       // }
-      int range = -1;
-      if ( callback_ptr_ && ( ( distance = lidar_.get_range( point.r, in_range ) ) >= 0 ) )
+      if ( callback_ptr_ && ( ( point.r = lidar_.get_range() ) >= 0 ) )
       {
-         point.r = range;
-         (*callback_ptr_)( point );
+         (*callback_ptr_)( mode_, point );
       }
    }
 }

@@ -7,16 +7,19 @@ class I2cInterface;
 class LidarLite {
 public:
 
-   LidarLite( I2cInterface* i2c );
+   static const uint8_t kDeviceAddress = 0x62;
+
+   LidarLite( I2cInterface* i2c, uint8_t address = kDeviceAddress );
    ~LidarLite();
 
-   bool eye_safe() const { read_mode_status() & 0x80; } ;
-   bool good() const { read_mode_status() & 0x20; };
-   bool busy() const { read_mode_status() & 0x01 };
+   bool eye_safe() { read_mode_status() & 0x80; } ;
+   bool good() { read_mode_status() & 0x20; };
+   bool busy() { read_mode_status() & 0x01; };
 
-   int get_range( bool corrected = true );
+   float get_range( bool corrected = true );
 
    uint8_t read_mode_status();
+   uint8_t read_health_status();
 
 private:
 
@@ -29,7 +32,6 @@ private:
 
 private:
 
-   static const uint8_t kDeviceAddress = 0x62;
    static const uint8_t kWriteAddress = 0xC4;
    static const uint8_t kReadAddress = 0xC5;
 
@@ -40,13 +42,14 @@ private:
    static const uint8_t kRegAcqModeCtrl = 0x04;
    static const uint8_t kRegMeasVelocity = 0x09;
    static const uint8_t kRegReceivedSignalStrength = 0x0E;
-   static const uint8_t kRegCalcDistanceL = 0x0F;
-   static const uint8_t kRegCalcDistanceH = 0x10;
+   static const uint8_t kRegCalcDistanceL = 0x10;
+   static const uint8_t kRegCalcDistanceH = 0x0F;
    static const uint8_t kRegDistanceCal = 0x13;
    static const uint8_t kRegPrevDistanceL = 0x14;
    static const uint8_t kRegPrevDistanceH = 0x15;
 
    I2cInterface* i2c_;
+   uint8_t address_;
 
 };
 

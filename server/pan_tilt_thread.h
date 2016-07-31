@@ -47,20 +47,21 @@ public:
       float theta;
       float r;
    };
-
-   class MeasurementCallback {
-   public:
-
-      virtual void operator()( const Point& point ) = 0;
-   };
-
-   PanTiltThread( PanTiltController& controller, LidarLite& lidar );
-
    enum ControlMode {
       kIdle,
       kRaster,
       kStare
    };
+
+   class MeasurementCallback {
+   public:
+
+      virtual void operator()( ControlMode mode, const Point& point ) = 0;
+   };
+
+   PanTiltThread( PanTiltController& controller, LidarLite& lidar );
+
+
    void set_mode( ControlMode mode );
 
    void set_callback( MeasurementCallback* callback_ptr );
