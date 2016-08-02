@@ -8,6 +8,7 @@ namespace Scanner {
 
 const ::coral::netapp::DestinationID kPointSubscription = 15;
 const ::coral::netapp::DestinationID kApiSubscription = 13;
+const ::coral::netapp::DestinationID kCommanderSubscription = 13;
 
 struct ScannerPoint {
    float phi;

@@ -9,13 +9,19 @@
 
 #include "PacketRouter.h"
 #include "PacketReceiverHook.h"
+#include "NetAppPacket.h"
+#include "scanner_point_callback.h"
+#include "pan_tilt_commander.h"
+
+
+using namespace coral::netapp;
 
 typedef boost::shared_ptr<boost::asio::serial_port> AsioSerialPtr;
 
 class AsioSerialPort :
 public coral::netapp::PacketRouter,
 public coral::netapp::PacketReceiverHook,
-public boost::enable_shared_from_this<AsioTcpPacketRouter>  {
+public boost::enable_shared_from_this<AsioSerialPort>  {
 public:
 
 	AsioSerialPort( boost::asio::io_service& io_service, ScannerPointCallback& point_callback, PanTiltCommander& pan_tilt_commander )

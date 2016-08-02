@@ -2,9 +2,11 @@
 #define  PAN_TILT_COMMANDER
 
 #include "Log.h"
+#include "GenericPacket.h"
 #include "PacketSubscriber.h"
-#include "PanTiltThread.h"
-#include "ScannerDefs.h"
+#include "pan_tilt_thread.h"
+#include "scanner_flat_defs.h"
+#include "scanner_point.h"
 
 class PanTiltCommander : public coral::netapp::PacketSubscriber {
 public:
@@ -15,7 +17,7 @@ public:
 
 	~PanTiltCommander() {}
 
-	bool put( DestinationID destination_id, const void* data_ptr, ui32 length ) {
+	bool put( coral::netapp::DestinationID destination_id, const void* data_ptr, ui32 length ) {
 
 		const scanner_flat_defs::message* message_ptr =
 			reinterpret_cast<const scanner_flat_defs::message*>(data_ptr);
@@ -28,14 +30,14 @@ public:
 
          case scanner_flat_defs::MODE_POINT:
          	{
-		         const scanner_mode& mode_attrs = message_ptr->data.mode;
-	            pan_tilt_.set_stare_point( mode_attrs.phi, mode_attrs.theta );
+					const scanner_flat_defs::scanner_mode& mode_attrs = message_ptr->data.mode;
+					pan_tilt_.set_stare_point( mode_attrs.phi, mode_attrs.theta );
 	         }
             break;
 
          case scanner_flat_defs::MODE_RASTER:
          	{
-         		const scanner_mode& mode_attrs = message_ptr->data.mode;
+         		const scanner_flat_defs::scanner_mode& mode_attrs = message_ptr->data.mode;
 	            pan_tilt_.set_min_phi(mode_attrs.min_phi);
 	            pan_tilt_.set_max_phi(mode_attrs.max_phi);
 	            pan_tilt_.set_min_theta(mode_attrs.min_theta);
@@ -45,7 +47,7 @@ public:
             break;
 
          default:
-            log::error("Invalid scanner mode requested!\n");
+            coral::log::error("Invalid scanner mode requested!\n");
             break;
       }
 
@@ -71,14 +73,14 @@ public:
    	response.data.status.theta = pan_tilt_.get_theta();
 
    	struct timeval now;
-   	gettimeofday(&now,nullptr);
+   	gettimeofday(&now,NULL);
 
    	response.data.status.timestamp.sec = now.tv_sec;
    	response.data.status.timestamp.usec = now.tv_usec;
 
-   	GenericPacket* packet_ptr = new GenericPacket(
+   	coral::netapp::GenericPacket* packet_ptr = new coral::netapp::GenericPacket(
    		scanner_flat_defs::full_message_size( response ) );
-   	memcpy(packet_ptr->data_ptr(),&response,scanner_flat_defs::full_message_size( response ));
+   	memcpy(packet_ptr->dataPtr(),&response,scanner_flat_defs::full_message_size( response ));
 
    	sendTo( Scanner::kCommanderSubscription, packet_ptr );
    }

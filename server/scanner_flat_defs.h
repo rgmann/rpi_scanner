@@ -8,12 +8,12 @@ namespace  scanner_flat_defs {
 
 	enum packet_types {
 		SET_MODE = 1,
-		STATUS_REQUEST
-		STATUS_RESPONSE = 2,
-		POINT = 3
+		STATUS_REQUEST = 2,
+		STATUS_RESPONSE = 3,
+		POINT = 4
 	};
 
-	enum scanner_mode {
+	enum scanner_modes {
 		MODE_IDLE = 0,
 		MODE_POINT = 1,
 		MODE_RASTER = 2

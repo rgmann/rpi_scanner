@@ -27,6 +27,7 @@
 #include "asio_serial_port.h"
 
 #include "scanner_point.h"
+#include "scanner_point_callback.h"
 
 using boost::asio::ip::tcp;
 using namespace coral;
@@ -38,27 +39,6 @@ using namespace coral::rpc;
 
 #define  PAN_CHANNEL    0
 #define  TILT_CHANNEL   4
-
-
-//----------------------------------------------------------------------
-class ScannerPointCallback :
-public PanTiltThread::MeasurementCallback,
-public PacketSubscriber {
-public:
-
-   void operator()( const PanTiltThread::Point& point ) {
-      GenericPacket* point_packet = new GenericPacket(sizeof(Scanner::ScannerPoint));
-      Scanner::ScannerPoint* new_point = (Scanner::ScannerPoint*)(point_packet->basePtr());
-      new_point->phi   = point.phi;
-      new_point->theta = point.theta;
-      new_point->r     = point.r;
-      sendTo( Scanner::kPointSubscription, point_packet );
-   };
-
-   bool put( DestinationID destination_id, const void* data_ptr, ui32 length ) {
-      return false;
-   }
-};
 
 
 int main( int argc, char** argv )
