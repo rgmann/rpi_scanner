@@ -54,6 +54,10 @@ add_executable(
    rpc_source/ScannerServiceSetModeAction.cpp
    scanner_service.cpp )
 
+add_executable(
+   serial_scanner_service
+   serial_scanner_service.cpp )
+
 target_link_libraries( pan_tilt_util scanner_common )
 target_link_libraries( pan_tilt_util coral_core_shared )
 target_link_libraries( pan_tilt_util ${Boost_LIBRARIES})

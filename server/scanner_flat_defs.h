@@ -1,3 +1,6 @@
+#ifndef  SCANNER_FLAT_DEFS
+#define  SCANNER_FLAT_DEFS
+
 
 namespace  scanner_flat_defs {
 
@@ -5,14 +8,15 @@ namespace  scanner_flat_defs {
 
 	enum packet_types {
 		SET_MODE = 1,
-		STATUS = 2,
+		STATUS_REQUEST
+		STATUS_RESPONSE = 2,
 		POINT = 3
 	};
 
 	enum scanner_mode {
-		IDLE = 0,
-		POINT = 1,
-		RASTER = 2
+		MODE_IDLE = 0,
+		MODE_POINT = 1,
+		MODE_RASTER = 2
 	};
 
 	struct message_header {
@@ -75,3 +79,4 @@ namespace  scanner_flat_defs {
 	}
 } 
 
+#endif // SCANNER_FLAT_DEFS

@@ -69,11 +69,17 @@ public:
    void set_hover_time( uint32_t duration_ms );
 
    void set_stare_point( float phi, float theta );
+   void get_phi() const { return stare_phi_; }
+   void get_theta() const { return stare_theta_; }
 
    void set_min_phi( float min_phi );
+   float get_min_phi() const { return min_phi_: }
    void set_max_phi( float max_phi );
+   float get_max_phi() const { return max_phi_; }
    void set_min_theta( float min_theta );
+   float get_min_theta() const { return min_theta_; }
    void set_max_theta( float max_theta );
+   float get_max_theta() const { return max_theta_; }
 
    void set_increment( float increment );
 

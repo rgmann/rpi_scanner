@@ -13,12 +13,15 @@
 typedef boost::shared_ptr<boost::asio::serial_port> AsioSerialPtr;
 
 class AsioSerialPort :
-public coral::netapp::PacketSubsrcriber {
+public coral::netapp::PacketRouter,
+public coral::netapp::PacketReceiverHook,
+public boost::enable_shared_from_this<AsioTcpPacketRouter>  {
 public:
 
-	AsioSerialPort( boost::asio::io_service& io_service, PanTiltThread& pan_tilt )
+	AsioSerialPort( boost::asio::io_service& io_service, ScannerPointCallback& point_callback, PanTiltCommander& pan_tilt_commander )
 		: io_service_( io_service )
-		, pan_tilt_( pan_tilt )
+		, point_callback_( point_callback )
+		, pan_tilt_commander_( pan_tilt_commander )
 	{
 	}
 
@@ -48,7 +51,7 @@ public:
 		serial_port_->set_option(boost::asio::serial_port_base::parity(boost::asio::serial_port_base::parity::none));
 		serial_port_->set_option(boost::asio::serial_port_base::flow_control(boost::asio::serial_port_base::flow_control::none));
 
-		subscribe( Scanner::kApiSubscription, &rpc_server_ );
+		subscribe( Scanner::kCommanderSubscription, &pan_tilt_commander_ );
       subscribe( Scanner::kPointSubscription, &point_callback_ );
 
 		async_read_some_();
@@ -60,8 +63,9 @@ public:
 	{
 		boost::mutex::scoped_lock look(lock_);
 
-		if (serial_port_) {
-			subscribe( Scanner::kApiSubscription, &rpc_server_ );
+		if ( serial_port_ )
+		{
+			subscribe( Scanner::kCommanderSubscription, &pan_tilt_commander_ );
       	subscribe( Scanner::kPointSubscription, &point_callback_ );
 
 			serial_port_->cancel();
@@ -99,7 +103,7 @@ public:
 	         container_ptr->packet_ptr_->allocatedSize() );
 
 	   io_service_.post( boost::bind(
-	      &AsioTcpPacketRouter::doWrite,
+	      &AsioSerialPort::doWrite,
 	      shared_from_this(),
 	      packet_ptr
 	   ));
@@ -146,7 +150,7 @@ public:
 	               write_packets_.front()->allocatedSize()
 	            ),
 	            boost::bind(
-	               &AsioTcpPacketRouter::handleWrite,
+	               &AsioSerialPort::handleWrite,
 	               shared_from_this(),
 	               boost::asio::placeholders::error
 	            )
@@ -182,6 +186,7 @@ public:
 		}
 
 		read_buffer_.write( raw_read_buffer_, bytes_transferred );
+
 		if ( marker_found_ ) {
 			scanner_flat_defs::message header;
 			read_buffer_.peek( &message.header, sizeof(message.header) );
@@ -265,38 +270,16 @@ public:
 	}
 
 	void process_message( const scanner_flat_defs::message& new_message ) {
-		const scanner_flat_defs::message* message_ptr = data_ptr;
-
-		switch ( message_ptr->header.type ) {
-			case SET_MODE:
-				switch ( message_ptr->data.mode.mode ) {
-					case scanner_flat_defs::IDLE:
-		            pan_tilt_.set_mode( PanTiltThread::kIdle );
-		            break;
-
-		         case scanner_flat_defs::POINT:
-		            pan_tilt_.set_stare_point( essage_ptr->data.mode.phi, ressage_ptr->data.mode.theta );
-		            break;
-
-		         case scanner_flat_defs::RASTER:
-		            pan_tilt_.set_min_phi( essage_ptr->data.mode.min_phi);
-	               pan_tilt_.set_max_phi(essage_ptr->data.mode.max_phi);
-	               pan_tilt_.set_min_theta(ressage_ptr->data.mode.min_theta);
-	               pan_tilt_.set_max_theta(essage_ptr->data.mode.max_theta);
-		            pan_tilt_.set_mode( PanTiltThread::kRaster );
-		            break;
-	         }
-	         break;
-
-	      default:
-	      	log::error("Invalid command\n");
-		}
+		publish(
+         Scanner::kCommanderSubscription,
+         &new_message,
+         scanner_flat_defs::full_message_size(new_message) );
 	}
 
 private:
 
 	boost::asio::io_service& 	io_service_;
-	coral::rpc::RpcServer& 		rpc_server_;
+	PanTiltCommander& 			pan_tilt_commander_;
 	ScannerPointCallback& 		point_callback_;
 
 	AsioSerialPtr 					serial_port_;
@@ -306,6 +289,8 @@ private:
 	char 								read_buffer_[ MAX_MESSAGE_SIZE ];
 	std::deque<NetAppPacket*>   write_packets_;
 };
+
+typedef boost::shared_ptr<AsioSerialPort> AsioSerialPortPtr;
 
 
 #endif // ASIO_SERIAL_PORT
