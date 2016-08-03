@@ -114,7 +114,7 @@ int main( int argc, char** argv )
                PanTiltCommander        pan_tilt_commander( pan_tilt_thread );
                pan_tilt_thread.set_callback( &point_callback );
 
-               pan_tilt_thread.launch();
+               if (pan_tilt_thread.launch()==false) coral::log::error("Failed to launch pan/tilt thread\n");
 
                // Star listening for connections.
                try

@@ -8,9 +8,10 @@ namespace  scanner_flat_defs {
 
 	enum packet_types {
 		SET_MODE = 1,
-		STATUS_REQUEST = 2,
-		STATUS_RESPONSE = 3,
-		POINT = 4
+		SET_LIMITS = 2,
+		STATUS_REQUEST = 3,
+		STATUS_RESPONSE = 4,
+		POINT = 5
 	};
 
 	enum scanner_modes {
@@ -32,12 +33,15 @@ namespace  scanner_flat_defs {
 
 	struct scanner_mode {
 		uint32_t mode;
+		float		phi;
+		float		theta;
+	};
+
+	struct scanner_limits {
 		float		min_phi;
 		float		max_phi;
 		float		min_theta;
 		float		max_theta;
-		float		phi;
-		float		theta;
 	};
 
 	struct scanner_point {
@@ -71,6 +75,7 @@ namespace  scanner_flat_defs {
 			scanner_mode 	mode;
 			scanner_status status;
 			scanner_point 	point;
+			scanner_limits limits;
 		} data;
 	};
 

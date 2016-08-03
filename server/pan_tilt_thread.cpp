@@ -203,11 +203,7 @@ void PanTiltThread::run( const bool& shutdown )
 
       boost::this_thread::sleep(boost::posix_time::milliseconds( measure_duration_ms_ ));
 
-      // bool in_range = true;
-      // if ( callback_ptr_ && short_range_.get_range( point.r, in_range ) && in_range )
-      // {
-      //    (*callback_ptr_)( point );
-      // }
+
       if ( callback_ptr_ && ( ( point.r = lidar_.get_range() ) >= 0 ) )
       {
          (*callback_ptr_)( mode_, point );
