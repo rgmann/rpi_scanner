@@ -4,4 +4,5 @@ Makefile
 cmake_install.cmake
 pan_tilt_util
 scanner_service
+serial_scanner_service
 libscanner_*.*

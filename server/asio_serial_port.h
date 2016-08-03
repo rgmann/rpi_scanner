@@ -10,8 +10,7 @@
 #include "PacketRouter.h"
 #include "PacketReceiverHook.h"
 #include "NetAppPacket.h"
-#include "scanner_point_callback.h"
-#include "pan_tilt_commander.h"
+#include "CircularBuffer.h"
 
 
 using namespace coral::netapp;
@@ -24,11 +23,13 @@ public coral::netapp::PacketReceiverHook,
 public boost::enable_shared_from_this<AsioSerialPort>  {
 public:
 
-	AsioSerialPort( boost::asio::io_service& io_service, ScannerPointCallback& point_callback, PanTiltCommander& pan_tilt_commander )
-		: io_service_( io_service )
-		, point_callback_( point_callback )
-		, pan_tilt_commander_( pan_tilt_commander )
+	AsioSerialPort( boost::asio::io_service& io_service )
+		: PacketRouter( this )
+		, io_service_( io_service )
+		, marker_found_( false )
+		, message_bytes_written_(0)
 	{
+		read_buffer_.allocate( sizeof(scanner_flat_defs::message) );
 	}
 
 	~AsioSerialPort() {}
@@ -42,11 +43,11 @@ public:
 			return false;
 		}
 
-		serial_port_ = serial_port_ptr(new boost::asio::serial_port(io_service_));
-		serial_port_->open(com_port_name, ec);
+		serial_port_ = AsioSerialPtr(new boost::asio::serial_port(io_service_));
+		serial_port_->open( port_name, ec);
 		if (ec) {
-			std::cout << "error : serial_port_->open() failed...com_port_name="
-				<< com_port_name << ", e=" << ec.message().c_str() << std::endl; 
+			std::cout << "error : serial_port_->open() failed...port_name="
+				<< port_name << ", e=" << ec.message().c_str() << std::endl; 
 			return false;
 		}
 
@@ -56,9 +57,6 @@ public:
 		serial_port_->set_option(boost::asio::serial_port_base::stop_bits(boost::asio::serial_port_base::stop_bits::one));
 		serial_port_->set_option(boost::asio::serial_port_base::parity(boost::asio::serial_port_base::parity::none));
 		serial_port_->set_option(boost::asio::serial_port_base::flow_control(boost::asio::serial_port_base::flow_control::none));
-
-		subscribe( Scanner::kCommanderSubscription, &pan_tilt_commander_ );
-      subscribe( Scanner::kPointSubscription, &point_callback_ );
 
 		async_read_some_();
 
@@ -71,9 +69,6 @@ public:
 
 		if ( serial_port_ )
 		{
-			subscribe( Scanner::kCommanderSubscription, &pan_tilt_commander_ );
-      	subscribe( Scanner::kPointSubscription, &point_callback_ );
-
 			serial_port_->cancel();
 			serial_port_->close();
 			serial_port_.reset();
@@ -109,7 +104,7 @@ public:
 	         container_ptr->packet_ptr_->allocatedSize() );
 
 	   io_service_.post( boost::bind(
-	      &AsioSerialPort::doWrite,
+	      &AsioSerialPort::do_write,
 	      shared_from_this(),
 	      packet_ptr
 	   ));
@@ -123,7 +118,7 @@ public:
 
 	   if ( !write_in_progress )
 	   {
-	      boost::asio::async_write( serial_port_,
+	      serial_port_->async_write_some( 
 	         boost::asio::buffer(
 	            write_packets_.front()->basePtr(),
 	            write_packets_.front()->allocatedSize()
@@ -131,41 +126,50 @@ public:
 	         boost::bind(
 	            &AsioSerialPort::handle_write,
 	            shared_from_this(),
-	            boost::asio::placeholders::error
+	            boost::asio::placeholders::error,
+					boost::asio::placeholders::bytes_transferred
 	         )
 	      );
 	   }
 	}
 
-	void handle_write( const boost::system::error_code& error )
+	void handle_write( const boost::system::error_code& error, size_t bytes_written )
 	{
 	   if (!error)
 	   {
-	      if (!write_packets_.empty() && ( write_packets_.front() != NULL ) )
-	      {
-	         delete write_packets_.front();
-	         write_packets_.front() = NULL;
-	      }
+			message_bytes_written_ += bytes_written;
 
-	      write_packets_.pop_front();
-	      if ( !write_packets_.empty() )
-	      {
-	         boost::asio::async_write( socket_,
-	            boost::asio::buffer(
-	               write_packets_.front()->basePtr(),
-	               write_packets_.front()->allocatedSize()
-	            ),
-	            boost::bind(
-	               &AsioSerialPort::handleWrite,
-	               shared_from_this(),
-	               boost::asio::placeholders::error
-	            )
-	         );
-	      }
+			if ( message_bytes_written_ == write_packets_.front()->allocatedSize() )
+			{
+				message_bytes_written_ = 0;
+
+				if (!write_packets_.empty() && ( write_packets_.front() != NULL ) )
+				{
+					delete write_packets_.front();
+					write_packets_.front() = NULL;
+				}
+
+				write_packets_.pop_front();
+				if ( !write_packets_.empty() )
+				{
+					serial_port_->async_write_some(
+						boost::asio::buffer(
+							write_packets_.front()->basePtr(),
+							write_packets_.front()->allocatedSize()
+						),
+						boost::bind(
+							&AsioSerialPort::handle_write,
+							shared_from_this(),
+							boost::asio::placeholders::error,
+							boost::asio::placeholders::bytes_transferred
+						)
+					);
+				}
+			}
 	   }
 	   else
 	   {
-	      doClose();
+			stop();
 	   }
 	}
 
@@ -174,7 +178,7 @@ public:
 		if (serial_port_.get() == NULL || !serial_port_->is_open()) return;
 
 		serial_port_->async_read_some( 
-			boost::asio::buffer(raw_read_buffer_, MAX_MESSAGE_SIZE),
+			boost::asio::buffer(raw_read_buffer_, sizeof(raw_read_buffer_)),
 			boost::bind(
 				&AsioSerialPort::handle_read_some,
 				this, boost::asio::placeholders::error, 
@@ -191,18 +195,31 @@ public:
 			return;
 		}
 
+		coral::log::status("received %u bytes\n",bytes_transferred);
 		read_buffer_.write( raw_read_buffer_, bytes_transferred );
 
-		if ( marker_found_ ) {
-			scanner_flat_defs::message header;
-			read_buffer_.peek( &message.header, sizeof(message.header) );
+		while ( read_buffer_.size() >= sizeof(scanner_flat_defs::message_header)) {
 
-			if ( read_buffer_.size() == message.header.size ) {
-				read_buffer_.read( &message, sizeof(message.header) + message.header.size );
-				process_message( message );
+			if ( marker_found_ == false ) {
+				marker_found_ = search_for_marker();
 			}
-		} else {
-			marker_found_ = search_for_marker();
+
+			if ( marker_found_ ) {
+				scanner_flat_defs::message message;
+				read_buffer_.peek( &message.header, sizeof(message.header) );
+
+				size_t expected_full_message_size = scanner_flat_defs::full_message_size(message);
+//				coral::log::status("received message header: size=%u, type=%d, full_size=%u\n",
+//					message.header.size, message.header.type, expected_full_message_size );
+
+				if ( read_buffer_.size() >= expected_full_message_size ) {
+//					coral::log::status("read full message = %u bytes\n",
+//						read_buffer_.read( &message, expected_full_message_size ) );
+					read_buffer_.read( &message, expected_full_message_size );
+					process_message( message );
+					marker_found_ = false;
+				}
+			}
 		}
 
 		async_read_some_();
@@ -214,61 +231,70 @@ public:
 			SEARCHING,
 			FOUND_0,
 			FOUND_1,
-			FOUND_3,
+			FOUND_2,
 			FOUND_MARKER
 		} marker_detect_state = SEARCHING;
 
-		size_t flush_count = 0;
-
 		uint8_t marker_buffer[sizeof(scanner_flat_defs::MARKER)];
-		size_t  marker_read_pos = 0;
 
-		while ( true ) {
+		while ( marker_detect_state != FOUND_MARKER ) {
 
-			uint8_t byte[] = {0};
-
-			if ( read_buffer_.peek( marker_buffer[marker_read_pos++], 1 ) != 1 )
+			if ( read_buffer_.peek( &marker_buffer, sizeof( marker_buffer ) ) != sizeof( marker_buffer ) )
 			{
 				break;
 			}
 
-			flush_count++;
+			marker_detect_state = SEARCHING;
 
-			switch ( marker_detect_state ) {
-				case SEARCHING:
-					if ( marker_buffer[0] == MARKER[0] )
-						marker_detect_state = FOUND_0;
-					else
-						marker_detect_state = SEARCHING;
-					break;
-				case FOUND_0:
-					if ( marker_buffer[1] == MARKER[1] )
-						marker_detect_state = FOUND_1;
-					else
-						marker_detect_state = SEARCHING;
-					break;
-				case FOUND_1:
-					if ( marker_buffer[2] == MARKER[2] )
-						marker_detect_state = FOUND_2;
-					else
-						marker_detect_state = SEARCHING;
-					break;
-				case FOUND_2:
-					if ( marker_buffer[3] == MARKER[3] )
-						marker_detect_state = FOUND_MARKER;
-					else
-						marker_detect_state = SEARCHING;
-					break;
+         for ( size_t pos = 0; pos < sizeof( marker_buffer ); ++pos )
+			{
+				uint8_t byte = marker_buffer[ pos ];
+
+//	         coral::log::status("rx: %02X\n",byte);
+
+				switch ( marker_detect_state ) {
+					case SEARCHING:
+						if ( byte == scanner_flat_defs::MARKER[0] ) {
+							marker_detect_state = FOUND_0;
+//							coral::log::status("FOUND_0\n");
+						} else {
+							marker_detect_state = SEARCHING;
+//							coral::log::status("SEARCHING\n");
+						}
+						break;
+					case FOUND_0:
+						if ( byte == scanner_flat_defs::MARKER[1] ) {
+							marker_detect_state = FOUND_1;
+//							coral::log::status("FOUND_1\n");
+						} else {
+							marker_detect_state = SEARCHING;
+//							coral::log::status("SEARCHING\n");
+						}
+						break;
+					case FOUND_1:
+						if ( byte == scanner_flat_defs::MARKER[2] ) {
+							marker_detect_state = FOUND_2;
+//							coral::log::status("FOUND_2\n");
+						} else {
+							marker_detect_state = SEARCHING;
+//							coral::log::status("SEARCHING\n");
+						}
+						break;
+					case FOUND_2:
+						if ( byte == scanner_flat_defs::MARKER[3] ) {
+							marker_detect_state = FOUND_MARKER;
+//							coral::log::status("FOUND_MARKER\n");
+						} else {
+							marker_detect_state = SEARCHING;
+//							coral::log::status("SEARCHING\n");
+						}
+						break;
+				}
 			}
 
-			// Flush non-marker bytes from the buffer until the marker is found.
-			if ( marker_detect_state == SEARCHING ) {
-				marker_read_pos = 0;
-				if ( flush_count > 0 ) {
-					for ( size_t flush_index = 0; flush_index < flush_count; ++flush_index ) {
-						read_buffer_.read( byte, sizeof(byte) );
-					}
-				}
+			if ( marker_detect_state != FOUND_MARKER ) {
+				uint8_t byte[] = {0};
+				read_buffer_.read( byte, sizeof(byte) );
 			}
 		}
 
@@ -285,15 +311,16 @@ public:
 private:
 
 	boost::asio::io_service& 	io_service_;
-	PanTiltCommander& 			pan_tilt_commander_;
-	ScannerPointCallback& 		point_callback_;
 
 	AsioSerialPtr 					serial_port_;
 	boost::mutex 					lock_;
 
-	char 								read_message_buffer_[ MAX_MESSAGE_SIZE ];
-	char 								read_buffer_[ MAX_MESSAGE_SIZE ];
+	char 								raw_read_buffer_[ sizeof(scanner_flat_defs::message) ];
+	coral::CircularBuffer					read_buffer_;
 	std::deque<NetAppPacket*>   write_packets_;
+
+   bool marker_found_;
+	size_t message_bytes_written_;
 };
 
 typedef boost::shared_ptr<AsioSerialPort> AsioSerialPortPtr;

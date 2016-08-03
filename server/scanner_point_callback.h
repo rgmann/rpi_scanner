@@ -10,7 +10,7 @@ public PanTiltThread::MeasurementCallback,
 public coral::netapp::PacketSubscriber {
 public:
 
-   void operator()( const PanTiltThread::Point& point ) {
+   void operator()( PanTiltThread::ControlMode mode, const PanTiltThread::Point& point ) {
       coral::netapp::GenericPacket* point_packet = new coral::netapp::GenericPacket(sizeof(Scanner::ScannerPoint));
       Scanner::ScannerPoint* new_point = (Scanner::ScannerPoint*)(point_packet->basePtr());
       new_point->phi   = point.phi;

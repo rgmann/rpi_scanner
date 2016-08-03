@@ -24,32 +24,41 @@ public:
 
 		switch ( message_ptr->header.type )
       {
-         case scanner_flat_defs::MODE_IDLE:
-            pan_tilt_.set_mode( PanTiltThread::kIdle );
-            break;
+			case scanner_flat_defs::SET_MODE:
+				switch ( message_ptr->data.mode.mode )
+				{
+		         case scanner_flat_defs::MODE_IDLE:
+		            pan_tilt_.set_mode( PanTiltThread::kIdle );
+		            break;
+		
+		         case scanner_flat_defs::MODE_POINT:
+		         	{
+							const scanner_flat_defs::scanner_mode& mode_attrs = message_ptr->data.mode;
+							pan_tilt_.set_stare_point( mode_attrs.phi, mode_attrs.theta );
+			         }
+		            break;
+		
+		         case scanner_flat_defs::MODE_RASTER:
+		         	{
+		         		const scanner_flat_defs::scanner_mode& mode_attrs = message_ptr->data.mode;
+			            pan_tilt_.set_min_phi(mode_attrs.min_phi);
+			            pan_tilt_.set_max_phi(mode_attrs.max_phi);
+			            pan_tilt_.set_min_theta(mode_attrs.min_theta);
+			            pan_tilt_.set_max_theta(mode_attrs.max_theta);
+			            pan_tilt_.set_mode( PanTiltThread::kRaster );
+			         }
+		            break;
+		
+		         default:
+		            coral::log::error("Invalid scanner mode requested!\n");
+		            break;
+				}
+				break;
 
-         case scanner_flat_defs::MODE_POINT:
-         	{
-					const scanner_flat_defs::scanner_mode& mode_attrs = message_ptr->data.mode;
-					pan_tilt_.set_stare_point( mode_attrs.phi, mode_attrs.theta );
-	         }
-            break;
-
-         case scanner_flat_defs::MODE_RASTER:
-         	{
-         		const scanner_flat_defs::scanner_mode& mode_attrs = message_ptr->data.mode;
-	            pan_tilt_.set_min_phi(mode_attrs.min_phi);
-	            pan_tilt_.set_max_phi(mode_attrs.max_phi);
-	            pan_tilt_.set_min_theta(mode_attrs.min_theta);
-	            pan_tilt_.set_max_theta(mode_attrs.max_theta);
-	            pan_tilt_.set_mode( PanTiltThread::kRaster );
-	         }
-            break;
-
-         default:
-            coral::log::error("Invalid scanner mode requested!\n");
-            break;
-      }
+			case scanner_flat_defs::STATUS_REQUEST:
+			default:
+				break;
+		}
 
       send_response();
 

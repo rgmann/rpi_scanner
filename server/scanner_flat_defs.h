@@ -4,7 +4,7 @@
 
 namespace  scanner_flat_defs {
 
-	const uint8_t MARKER[] = {0xDE,0xAD,0xBE,0xEF};
+	const uint8_t MARKER[] = {0xEF,0xBE,0xAD,0xDE};
 
 	enum packet_types {
 		SET_MODE = 1,

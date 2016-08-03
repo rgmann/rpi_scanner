@@ -33,12 +33,47 @@ using boost::asio::ip::tcp;
 using namespace coral;
 using namespace coral::netapp;
 using namespace coral::cli;
-using namespace coral::rpc;
 
 #define  PWM_FREQ_HZ    60
 
 #define  PAN_CHANNEL    0
 #define  TILT_CHANNEL   4
+
+/*
+int main( int argc, char** argv )
+{
+   coral::log::level( coral::log::Verbose );
+
+   ArgParser args;
+   args.addArg("name: Port, primary: p, alt: port, type: opt, \
+               vtype: string, required, desc: serial port name");
+
+   if ( args.parse( (const char**)argv, argc ) )
+   {
+		try
+		{
+		   std::string port_name;
+		   args.getArgVal( Argument::ArgName, "Port", port_name );
+		
+			boost::asio::io_service io_service;
+		   coral::log::status( "Starting server on port %s\n", port_name.c_str() );
+		   AsioSerialPortPtr port_router( new AsioSerialPort( io_service ) );
+		
+		   port_router->start( port_name, 115200 );
+		
+		   io_service.run();
+		
+		   port_router->stop();
+		}
+		catch (std::exception& e)
+		{
+		   coral::log::error( "Exception: %s\n", e.what() );
+		}
+	}
+
+	return 0;
+}
+*/
 
 
 int main( int argc, char** argv )
@@ -60,7 +95,7 @@ int main( int argc, char** argv )
          Ads1115Interface adc( i2c );
 
          if ( pwm.initialize() )
-         {
+			{
             bool init_success = true;
 
             if ( pwm.set_frequency( PWM_FREQ_HZ ) == false )
@@ -87,15 +122,23 @@ int main( int argc, char** argv )
                   std::string port_name;
                   args.getArgVal( Argument::ArgName, "Port", port_name );
 
+						boost::asio::io_service io_service;
                   coral::log::status( "Starting server on port %s\n", port_name.c_str() );
-                  AsioScannerServerPtr server( new AsioScannerServer( io_service, endpoint, pan_tilt_thread ) );
-                  AsioSerialPortPtr port_router( new AsioSerialPort( io_service, point_callback, pan_tilt_commander ) );
+                  AsioSerialPortPtr port_router( new AsioSerialPort( io_service ) );
+
+						port_router->subscribe( Scanner::kCommanderSubscription, &pan_tilt_commander );
+						port_router->subscribe( Scanner::kPointSubscription, &point_callback );
 
                   port_router->start( port_name, 115200 );
 
                   io_service.run();
 
                   port_router->stop();
+
+
+						port_router->unsubscribe( Scanner::kCommanderSubscription, &pan_tilt_commander );
+			         port_router->unsubscribe( Scanner::kPointSubscription, &point_callback );
+
                }
                catch (std::exception& e)
                {
@@ -138,3 +181,4 @@ int main( int argc, char** argv )
 
    return 0;
 }
+
