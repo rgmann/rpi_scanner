@@ -77,8 +77,6 @@ public:
 
 	bool call( PacketContainer* container_ptr )
 	{
-	   boost::mutex::scoped_lock guard( lock_ );
-
 	   bool push_success = false;
 
 	   if ( container_ptr )
@@ -112,25 +110,32 @@ public:
 
 	void do_write( NetAppPacket* packet_ptr )
 	{
-	   bool write_in_progress = ( write_packets_.empty() == false );
+		boost::mutex::scoped_lock guard(lock_);
 
-	   write_packets_.push_back( packet_ptr );
+		if ( serial_port_.get() && serial_port_->is_open() )
+		{
+		   bool write_in_progress = ( write_packets_.empty() == false );
 
-	   if ( !write_in_progress )
-	   {
-	      serial_port_->async_write_some( 
-	         boost::asio::buffer(
-	            write_packets_.front()->basePtr(),
-	            write_packets_.front()->allocatedSize()
-	         ),
-	         boost::bind(
-	            &AsioSerialPort::handle_write,
-	            shared_from_this(),
-	            boost::asio::placeholders::error,
-					boost::asio::placeholders::bytes_transferred
-	         )
-	      );
-	   }
+		   write_packets_.push_back( packet_ptr );
+
+		   if ( !write_in_progress )
+		   {
+		      serial_port_->async_write_some( 
+		         boost::asio::buffer(
+		            write_packets_.front()->basePtr(),
+		            write_packets_.front()->allocatedSize()
+		         ),
+		         boost::bind(
+		            &AsioSerialPort::handle_write,
+		            shared_from_this(),
+		            boost::asio::placeholders::error,
+						boost::asio::placeholders::bytes_transferred
+		         )
+		      );
+		   }
+		} else {
+			delete packet_ptr;
+		}
 	}
 
 	void handle_write( const boost::system::error_code& error, size_t bytes_written )
