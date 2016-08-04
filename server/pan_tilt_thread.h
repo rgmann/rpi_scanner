@@ -84,6 +84,11 @@ public:
 
    void set_increment( float increment );
 
+	bool get_ll_eye_safe() { return ll_eye_safe_; }
+	bool get_ll_good() { return ll_good_; }
+	uint8_t get_ll_status() { return ll_status_; }
+
+
 private:
 
    void run( const bool& shutdown );
@@ -114,6 +119,10 @@ private:
    float min_theta_;
    float max_theta_;
    float increment_;
+
+	bool ll_eye_safe_;
+	bool ll_good_;
+	uint8_t ll_status_;
 };
 
 #endif // PAN_TILT_THREAD_H

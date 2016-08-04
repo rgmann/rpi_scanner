@@ -20,38 +20,38 @@ namespace  scanner_flat_defs {
 		MODE_RASTER = 2
 	};
 
-	struct message_header {
+	struct __attribute__((packed)) message_header {
 		uint32_t	marker;
 		uint32_t size;
 		uint32_t type;
 	};
 
-	struct message_timestamp {
+	struct __attribute__((packed)) message_timestamp {
 		uint32_t sec;
 		uint32_t usec;
 	};
 
-	struct scanner_mode {
+	struct __attribute__((packed)) scanner_mode {
 		uint32_t mode;
 		float		phi;
 		float		theta;
 	};
 
-	struct scanner_limits {
+	struct __attribute__((packed)) scanner_limits {
 		float		min_phi;
 		float		max_phi;
 		float		min_theta;
 		float		max_theta;
 	};
 
-	struct scanner_point {
+	struct __attribute__((packed)) scanner_point {
 		message_timestamp timestamp;
 		float 	phi;
 		float 	theta;
 		float		r;
 	};
 
-	struct scanner_status {
+	struct __attribute__((packed)) scanner_status {
 		uint32_t mode;
 		float		min_phi;
 		float		max_phi;
@@ -69,7 +69,7 @@ namespace  scanner_flat_defs {
 		} timestamp;
 	};
 
-	struct message {
+	struct __attribute__((packed)) message {
 		message_header header;
 		union {
 			scanner_mode 	mode;

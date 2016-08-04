@@ -70,6 +70,9 @@ PanTiltThread::PanTiltThread(
    , min_theta_( THETA_LOW_LIMIT_RAD )
    , max_theta_( THETA_HIGH_LIMIT_RAD )
    , increment_( MOTION_STEP )
+	, ll_eye_safe_( false )
+	, ll_good_( false )
+	, ll_status_( 0 )
 {
    stare_phi_ = (
       PanTiltController::kMaxAngleRadians -
@@ -200,6 +203,10 @@ void PanTiltThread::run( const bool& shutdown )
          point.phi   = stare_phi_;
          point.theta = stare_theta_;
       }
+
+		ll_eye_safe_ = lidar_.eye_safe();
+      ll_good_ = lidar_.good();
+      ll_status_ = lidar_.read_health_status();
 
       boost::this_thread::sleep(boost::posix_time::milliseconds( measure_duration_ms_ ));
 
