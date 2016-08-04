@@ -16,6 +16,7 @@
 using namespace coral::netapp;
 
 typedef boost::shared_ptr<boost::asio::serial_port> AsioSerialPtr;
+typedef boost::shared_ptr<GenericPacket> GenericPacketPtr;
 
 class AsioSerialPort :
 public coral::netapp::PacketRouter,
@@ -92,7 +93,7 @@ public:
 
 	void write_packet( const PacketContainer* container_ptr )
 	{
-	   NetAppPacket* packet_ptr = new NetAppPacket(
+/*	   NetAppPacket* packet_ptr = new NetAppPacket(
 	      container_ptr->destination_id_,
 	      container_ptr->packet_ptr_->allocatedSize()
 	   );
@@ -100,15 +101,15 @@ public:
 	   memcpy( packet_ptr->dataPtr(),
 	         container_ptr->packet_ptr_->basePtr(),
 	         container_ptr->packet_ptr_->allocatedSize() );
-
+*/
 	   io_service_.post( boost::bind(
 	      &AsioSerialPort::do_write,
 	      shared_from_this(),
-	      packet_ptr
+	      GenericPacketPtr( container_ptr->packet_ptr_ )
 	   ));
 	}
 
-	void do_write( NetAppPacket* packet_ptr )
+	void do_write( GenericPacketPtr packet_ptr )
 	{
 		boost::mutex::scoped_lock guard(lock_);
 
@@ -134,7 +135,7 @@ public:
 		      );
 		   }
 		} else {
-			delete packet_ptr;
+	//		delete packet_ptr;
 		}
 	}
 
@@ -150,8 +151,8 @@ public:
 
 				if (!write_packets_.empty() && ( write_packets_.front() != NULL ) )
 				{
-					delete write_packets_.front();
-					write_packets_.front() = NULL;
+	//				delete write_packets_.front();
+	//				write_packets_.front() = NULL;
 				}
 
 				write_packets_.pop_front();
@@ -200,7 +201,8 @@ public:
 			return;
 		}
 
-		coral::log::status("received %u bytes\n",bytes_transferred);
+		//coral::log::status("received %u bytes\n",bytes_transferred);
+		//printf("received %u bytes\n",bytes_transferred);
 		read_buffer_.write( raw_read_buffer_, bytes_transferred );
 
 		while ( read_buffer_.size() >= sizeof(scanner_flat_defs::message_header)) {
@@ -214,16 +216,18 @@ public:
 				read_buffer_.peek( &message.header, sizeof(message.header) );
 
 				size_t expected_full_message_size = scanner_flat_defs::full_message_size(message);
-				coral::log::status("received message header: size=%u, type=%d, full_size=%u\n",
-					message.header.size, message.header.type, expected_full_message_size );
+				//coral::log::status("received message header: size=%u, type=%d, full_size=%u\n",
+				//	message.header.size, message.header.type, expected_full_message_size );
 
 				if ( read_buffer_.size() >= expected_full_message_size ) {
 					size_t bytes_read = read_buffer_.read( &message, expected_full_message_size );
-					coral::log::status("read full message = %u bytes\n",
-						bytes_read );
+					//coral::log::status("read full message = %u bytes\n",
+					//	bytes_read );
 					read_buffer_.read( &message, expected_full_message_size );
 					process_message( message );
 					marker_found_ = false;
+				} else {
+					break;
 				}
 			}
 		}
@@ -256,43 +260,43 @@ public:
 			{
 				uint8_t byte = marker_buffer[ pos ];
 
-	         coral::log::status("rx: %02X\n",byte);
+	         //coral::log::status("rx: %02X\n",byte);
 
 				switch ( marker_detect_state ) {
 					case SEARCHING:
 						if ( byte == scanner_flat_defs::MARKER[0] ) {
 							marker_detect_state = FOUND_0;
-							coral::log::status("FOUND_0\n");
+							//coral::log::status("FOUND_0\n");
 						} else {
 							marker_detect_state = SEARCHING;
-							coral::log::status("SEARCHING\n");
+							//coral::log::status("SEARCHING\n");
 						}
 						break;
 					case FOUND_0:
 						if ( byte == scanner_flat_defs::MARKER[1] ) {
 							marker_detect_state = FOUND_1;
-							coral::log::status("FOUND_1\n");
+						//	coral::log::status("FOUND_1\n");
 						} else {
 							marker_detect_state = SEARCHING;
-							coral::log::status("SEARCHING\n");
+						//	coral::log::status("SEARCHING\n");
 						}
 						break;
 					case FOUND_1:
 						if ( byte == scanner_flat_defs::MARKER[2] ) {
 							marker_detect_state = FOUND_2;
-							coral::log::status("FOUND_2\n");
+						//	coral::log::status("FOUND_2\n");
 						} else {
 							marker_detect_state = SEARCHING;
-							coral::log::status("SEARCHING\n");
+						//	coral::log::status("SEARCHING\n");
 						}
 						break;
 					case FOUND_2:
 						if ( byte == scanner_flat_defs::MARKER[3] ) {
 							marker_detect_state = FOUND_MARKER;
-							coral::log::status("FOUND_MARKER\n");
+						//	coral::log::status("FOUND_MARKER\n");
 						} else {
 							marker_detect_state = SEARCHING;
-							coral::log::status("SEARCHING\n");
+						//	coral::log::status("SEARCHING\n");
 						}
 						break;
 				}
@@ -323,7 +327,7 @@ private:
 
 	char 								raw_read_buffer_[ sizeof(scanner_flat_defs::message) ];
 	coral::CircularBuffer					read_buffer_;
-	std::deque<NetAppPacket*>   write_packets_;
+	std::deque<GenericPacketPtr>   write_packets_;
 
    bool marker_found_;
 	size_t message_bytes_written_;

@@ -19,25 +19,25 @@ public:
 
 	bool put( coral::netapp::DestinationID destination_id, const void* data_ptr, ui32 length ) {
 
-		coral::log::status("DATA: length=%d\n",length);
+		//coral::log::status("DATA: length=%d\n",length);
 		const scanner_flat_defs::message* message_ptr =
 			reinterpret_cast<const scanner_flat_defs::message*>(data_ptr);
 
 		switch ( message_ptr->header.type )
       {
 			case scanner_flat_defs::SET_MODE:
-				coral::log::status("SET_MODE\n");
+				//coral::log::status("SET_MODE\n");
 				switch ( message_ptr->data.mode.mode )
 				{
 		         case scanner_flat_defs::MODE_IDLE:
-				coral::log::status("MODE IDLE\n");
+				//coral::log::status("MODE IDLE\n");
 		            pan_tilt_.set_mode( PanTiltThread::kIdle );
 		            break;
 		
 		         case scanner_flat_defs::MODE_POINT:
 		         	{
 							const scanner_flat_defs::scanner_mode& mode_attrs = message_ptr->data.mode;
-				coral::log::status("MODE POINT: phi=%0.6f, theta=%0.6f\n",mode_attrs.phi, mode_attrs.theta);
+				//coral::log::status("MODE POINT: phi=%0.6f, theta=%0.6f\n",mode_attrs.phi, mode_attrs.theta);
 							pan_tilt_.set_stare_point( mode_attrs.phi, mode_attrs.theta );
 			            pan_tilt_.set_mode( PanTiltThread::kStare );
 			         }
@@ -45,20 +45,20 @@ public:
 		
 		         case scanner_flat_defs::MODE_RASTER:
 		         	{
-				coral::log::status("MODE RASTER\n");
+				//coral::log::status("MODE RASTER\n");
 		         		const scanner_flat_defs::scanner_mode& mode_attrs = message_ptr->data.mode;
 			            pan_tilt_.set_mode( PanTiltThread::kRaster );
 			         }
 		            break;
 		
 		         default:
-		            coral::log::error("Invalid scanner mode requested!\n");
+		            //coral::log::error("Invalid scanner mode requested!\n");
 		            break;
 				}
 				break;
 
 			case scanner_flat_defs::SET_LIMITS:
-				coral::log::status("SET_LIMITS\n");
+				//coral::log::status("SET_LIMITS\n");
 				{
 		      const scanner_flat_defs::scanner_limits& mode_attrs = message_ptr->data.limits;
             pan_tilt_.set_min_phi(mode_attrs.min_phi);
@@ -69,11 +69,11 @@ public:
 				break;
 
 			case scanner_flat_defs::STATUS_REQUEST:
-				coral::log::status("STATUS_REQUEST\n");
+				//coral::log::status("STATUS_REQUEST\n");
 				break;
 
 			default:
-				coral::log::status("STATUS_REQUEST\n");
+				//coral::log::status("STATUS_REQUEST\n");
 				break;
 		}
 
@@ -89,7 +89,7 @@ public:
    	memcpy(&response.header.marker,scanner_flat_defs::MARKER,sizeof(scanner_flat_defs::MARKER));
    	response.header.type = scanner_flat_defs::STATUS_RESPONSE;
    	response.header.size = sizeof(scanner_flat_defs::scanner_status);
-/*
+
    	response.data.status.mode = pan_tilt_.get_mode();
    	response.data.status.min_phi = pan_tilt_.get_min_phi();
    	response.data.status.max_phi = pan_tilt_.get_max_phi();
@@ -103,14 +103,15 @@ public:
 
    	response.data.status.timestamp.sec = now.tv_sec;
    	response.data.status.timestamp.usec = now.tv_usec;
-*/
-   	coral::netapp::GenericPacket* packet_ptr = new coral::netapp::GenericPacket(
-   		scanner_flat_defs::full_message_size( response ) );
-   	memcpy(packet_ptr->dataPtr(),&response,scanner_flat_defs::full_message_size( response ));
 
-coral::log::status("SENDING RESPONSE\n");
+   	coral::netapp::GenericPacket* packet_ptr = new coral::netapp::GenericPacket(
+			sizeof( scanner_flat_defs::message_header ),
+   		response.header.size );
+   	memcpy( packet_ptr->basePtr(), &response, scanner_flat_defs::full_message_size( response ));
+
+//coral::log::status("SENDING RESPONSE\n");
    	sendTo( Scanner::kCommanderSubscription, packet_ptr );
-coral::log::status("RESPONSE SENT\n");
+//coral::log::status("RESPONSE SENT\n");
    }
 
 private:
