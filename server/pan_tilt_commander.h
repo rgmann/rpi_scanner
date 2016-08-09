@@ -1,6 +1,9 @@
 #ifndef  PAN_TILT_COMMANDER
 #define  PAN_TILT_COMMANDER
 
+#include <stdio.h>
+#include <sstream>
+
 #include "Log.h"
 #include "GenericPacket.h"
 #include "PacketSubscriber.h"
@@ -64,6 +67,10 @@ public:
 			case scanner_flat_defs::STATUS_REQUEST:
 				break;
 
+			case scanner_flat_defs::SHUTDOWN:
+				begin_shutdown( message_ptr->data.shutdown.reboot );
+				break;
+
 			default:
 				break;
 		}
@@ -106,6 +113,27 @@ public:
 
    	sendTo( Scanner::kCommanderSubscription, packet_ptr );
    }
+
+	void begin_shutdown( bool reboot )
+	{
+
+		std::stringstream stream;
+
+		stream << "sudo shutdown ";
+		if ( reboot ) stream << "-r";
+		else stream << "-h";
+		stream << " now";
+
+		FILE* shutdown_cmd = popen( stream.str().c_str(), "r");
+		if ( shutdown_cmd )
+		{
+			pclose( shutdown_cmd );
+		}
+		else
+		{
+			coral::log::error("Failed to initiate shutdown\n");
+		}
+	}
 
 private:
 
