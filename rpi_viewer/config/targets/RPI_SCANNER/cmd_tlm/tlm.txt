@@ -1,0 +1,46 @@
+TELEMETRY RPI_SCANNER STATUS LITTLE_ENDIAN "RPI scanner status"
+   APPEND_ID_ITEM MARKER 32 UINT 3735928559 "Packet marker"
+   APPEND_ITEM SIZE 32 UINT "Packet size"
+   APPEND_ID_ITEM TYPE 32 UINT 4 "Packet identifier"
+   APPEND_ITEM MODE 32 UINT "Current scanner mode"
+      STATE MODE_IDLE 0
+      STATE MODE_RASTER 1
+      STATE MODE_POINT 2
+   APPEND_ITEM MIN_PHI 32 FLOAT "Min phi angle"
+      UNITS radians rad
+   APPEND_ITEM MAX_PHI 32 FLOAT "Max phi angle"
+      UNITS radians rad
+   APPEND_ITEM MIN_THETA 32 FLOAT "Min theta angle"
+      UNITS radians rad
+   APPEND_ITEM MAX_THETA 32 FLOAT "Max theta angle"
+      UNITS radians rad
+   APPEND_ITEM PHI 32 FLOAT "Point phi angle"
+      UNITS radians rad
+   APPEND_ITEM THETA 32 FLOAT "Point theta angle"
+      UNITS radians rad
+   APPEND_ITEM EYE_SAFE 8 UINT "Laser is eyesafe"
+      STATE FALSE 0 RED
+      STATE TRUE 1 GREEN
+   APPEND_ITEM GOOD 8 UINT "The scanner is OK"
+      STATE FALSE 0 RED
+      STATE TRUE 1 GREEN
+   APPEND_ITEM GOOD 8 UINT "Status flag"
+      STATE FALSE 0 RED
+      STATE TRUE 1 GREEN
+   APPEND_ITEM PAD 8 UINT "Padding"
+   APPEND_ITEM TIME_SEC 32 UINT "Timestamp seconds"
+   APPEND_ITEM TIME_USEC 32 UINT "Timestamp seconds"
+
+TELEMETRY RPI_SCANNER POINT LITTLE_ENDIAN "Acquired point"
+   APPEND_ID_ITEM MARKER 32 UINT 3735928559 "Packet marker"
+   APPEND_ITEM SIZE 32 UINT "Packet size"
+   APPEND_ID_ITEM TYPE 32 UINT 5 "Packet identifier"
+   APPEND_ITEM TS_SEC 32 UINT "Timestamp seconds"
+   APPEND_ITEM TS_USEC 32 UINT "Timestamp microseconds" 
+   APPEND_ITEM PHI 32 FLOAT "Point phi angle"
+      UNITS radians rad
+   APPEND_ITEM THETA 32 FLOAT "Point theta angle"
+      UNITS radians rad
+   APPEND_ITEM R 32 FLOAT "Point distance"
+      UNITS meters m
+
