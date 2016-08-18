@@ -233,7 +233,7 @@ class PcdFile
     @fields << PointsField.new
     @fields << DataField.new
 
-    @version = nil
+    @version = '.7'
     @points = []
 
     if point_format

@@ -45,10 +45,21 @@ module Cosmos
   end
 
   class PointCloudShape < Cosmos::GlShape
-    def initialize( pcd_file )
+
+    attr_accessor :pcd_file
+
+    def initialize()
       super( 0, 0, 0)
-      @pcd_file = pcd_file
+
+      point_format = PcdFile::PointFormat.new
+      point_format.add_dimension( PcdFile::PointFormatDimension.new( 'x', :float, 4, 1 ) )
+      point_format.add_dimension( PcdFile::PointFormatDimension.new( 'y', :float, 4, 1 ) )
+      point_format.add_dimension( PcdFile::PointFormatDimension.new( 'z', :float, 4, 1 ) )
+
+      @pcd_file = PcdFile.new( point_format )
+
       @last_start_index = 0
+
     end
     def drawshape(viewer)
       GL.Begin GL::POINTS
@@ -105,12 +116,9 @@ module Cosmos
         raise "Could not find config file #{filename}"
       end
 
-      point_format = PcdFile::PointFormat.new
-      point_format.add_dimension( PcdFile::PointFormatDimension.new( 'x', :float, 4, 1 ) )
-      point_format.add_dimension( PcdFile::PointFormatDimension.new( 'y', :float, 4, 1 ) )
-      point_format.add_dimension( PcdFile::PointFormatDimension.new( 'z', :float, 4, 1 ) )
+      @point_cloud = PointCloudShape.new
+      @scene.append( @point_cloud )
 
-      @pcd_file = PcdFile.new( point_format )
       @packets = []
       if @config.point_source[:primary]
         @packets << [ @config.point_source[:primary][:target], @config.point_source[:primary][:packet] ]
@@ -240,13 +248,10 @@ module Cosmos
 
     def initialize_central_widget
       # Create the central widget
-      @central_widget = Qt::Widget.new
-      setCentralWidget(@central_widget)
-      @top_layout = Qt::VBoxLayout.new
-      @central_widget.setLayout(@top_layout)
+      @central_widget = Qt::Widget.new(self)
+      setCentralWidget( @central_widget )
 
-      # # Create the top level vertical layout
-      # @top_layout = Qt::VBoxLayout.new(@central_widget)
+      @top_layout = Qt::VBoxLayout.new(@central_widget)
 
       # Realtime Button Bar
       @realtime_button_bar = RealtimeButtonBar.new(self)
@@ -254,13 +259,14 @@ module Cosmos
       @realtime_button_bar.pause_callback = method(:handle_pause)
       @realtime_button_bar.stop_callback  = method(:handle_stop)
       @realtime_button_bar.state = 'Stopped'
+      # @top_layout.addWidget(@realtime_button_bar)
       @top_layout.addWidget(@realtime_button_bar)
 
       @viewer = GlViewer.new(self)
       @viewer.draw_axis = 15
       @viewer.scene = @scene
       # @viewer.selection_callback = method(:selection_callback)
-      @top_layout.addWidget(@viewer)
+      @top_layout.addWidget( @viewer )
     end
 
     def keyPressEvent(event)
@@ -480,7 +486,7 @@ module Cosmos
                       # puts point
                     end
 
-                    @pcd_file.add_point( point )
+                    @point_cloud.pcd_file.add_point( point )
                     @processed_queue << point
 
                   rescue DRb::DRbConnError
@@ -520,7 +526,7 @@ module Cosmos
           Qt.execute_in_main_thread(true) do
             point = @processed_queue.pop(true)
 
-            @scene.append PointShape.new( point )
+            # @scene.append PointShape.new( point )
             @scene.draw( @viewer )
             @viewer.update
           end
@@ -531,9 +537,9 @@ module Cosmos
     end
 
     def spherical_to_cartesian( phi, theta, rho )
-      x = rho * Math.sin( theta ) * Math.cos( phi )
-      y = rho * Math.sin( theta ) * Math.sin( phi )
-      z = rho * Math.cos( theta )
+      z = rho * Math.sin( theta ) * Math.cos( phi )
+      x = rho * Math.sin( theta ) * Math.sin( phi )
+      y = rho * Math.cos( theta )
       return [ x, y, z ]
     end
 
@@ -541,12 +547,7 @@ module Cosmos
       filename = Qt::FileDialog.getOpenFileName(self, "Open Scene File:", File.join(USERPATH, 'config', 'tools', 'opengl_builder'), "PCD Files (*.pcd);;All Files (*)")
       if !filename.to_s.empty?
         begin
-          @file = PcdFile.parse!( filename )
-          # puts GL.instance_methods
-          # @file.points.each do |point|
-          #   @scene.append PointShape.new( point )
-          # end
-          @scene.append PointCloudShape.new( @file )
+          @point_cloud.pcd_file = PcdFile.parse!( filename )
           @viewer.update
 
           statusBar.showMessage "Loaded #{filename}"
@@ -559,7 +560,7 @@ module Cosmos
     def file_export
       filename = Qt::FileDialog.getSaveFileName(self, "Export Point Cloud to File", File.join(USERPATH, 'config', 'tools', 'opengl_builder', 'scene.txt'), "Scene Files (*.txt);;All Files (*)")
       if !filename.to_s.empty?
-        @pcd_file.write( filename )
+        @point_cloud.pcd_file.write( filename )
       end
     end
 
