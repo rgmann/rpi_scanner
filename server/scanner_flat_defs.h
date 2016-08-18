@@ -11,7 +11,8 @@ namespace  scanner_flat_defs {
 		SET_LIMITS = 2,
 		STATUS_REQUEST = 3,
 		STATUS_RESPONSE = 4,
-		POINT = 5
+		POINT = 5,
+		SHUTDOWN = 6
 	};
 
 	enum scanner_modes {
@@ -42,6 +43,11 @@ namespace  scanner_flat_defs {
 		float		max_phi;
 		float		min_theta;
 		float		max_theta;
+	};
+
+	struct __attribute__((packed)) scanner_shutdown {
+		bool reboot;
+		uint8_t pad[3];
 	};
 
 	struct __attribute__((packed)) scanner_point {
@@ -76,6 +82,7 @@ namespace  scanner_flat_defs {
 			scanner_status status;
 			scanner_point 	point;
 			scanner_limits limits;
+			scanner_shutdown shutdown;
 		} data;
 	};
 

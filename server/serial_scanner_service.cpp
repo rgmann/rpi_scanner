@@ -11,6 +11,8 @@
 #include <boost/shared_ptr.hpp>
 #include <boost/enable_shared_from_this.hpp>
 #include <boost/asio.hpp>
+#include <sys/types.h>
+#include <unistd.h>
 
 #include "Log.h"
 #include "ArgParser.h"
@@ -39,41 +41,6 @@ using namespace coral::cli;
 #define  PAN_CHANNEL    0
 #define  TILT_CHANNEL   4
 
-/*
-int main( int argc, char** argv )
-{
-   coral::log::level( coral::log::Verbose );
-
-   ArgParser args;
-   args.addArg("name: Port, primary: p, alt: port, type: opt, \
-               vtype: string, required, desc: serial port name");
-
-   if ( args.parse( (const char**)argv, argc ) )
-   {
-		try
-		{
-		   std::string port_name;
-		   args.getArgVal( Argument::ArgName, "Port", port_name );
-		
-			boost::asio::io_service io_service;
-		   coral::log::status( "Starting server on port %s\n", port_name.c_str() );
-		   AsioSerialPortPtr port_router( new AsioSerialPort( io_service ) );
-		
-		   port_router->start( port_name, 115200 );
-		
-		   io_service.run();
-		
-		   port_router->stop();
-		}
-		catch (std::exception& e)
-		{
-		   coral::log::error( "Exception: %s\n", e.what() );
-		}
-	}
-
-	return 0;
-}
-*/
 
 
 int main( int argc, char** argv )
@@ -83,9 +50,29 @@ int main( int argc, char** argv )
    ArgParser args;
    args.addArg("name: Port, primary: p, alt: port, type: opt, \
                vtype: string, required, desc: serial port name");
+   args.addArg("name: Daemon, primary: d, alt: daemon, type: flag, \
+					desc: create lock file");
+
 
    if ( args.parse( (const char**)argv, argc ) )
    {
+
+		if ( args.isSet( Argument::ArgName, "Daemon" ) )
+		{
+			static const char* pid_filepath = "/var/run/rpi_scanner.pid";
+			coral::log::status("Running as service. Creating PID file at %s\n",pid_filepath);
+			std::ofstream pid_file;
+			pid_file.open( pid_filepath, std::ofstream::out );
+         if ( pid_file.is_open() )
+			{
+				pid_file << getpid();
+				pid_file.close();
+			}
+			else
+			{
+				coral::log::error("Failed to open and write PID file.\n");
+			}
+		}
 
       I2cInterface* i2c = I2cInterface::instance( "/dev/i2c-1" );
 
