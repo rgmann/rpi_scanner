@@ -25,28 +25,10 @@ include Math
 
 module Cosmos
 
-  class PointShape < Cosmos::GlShape
-    def initialize( attrs )
-      super( attrs[0], attrs[1], attrs[2] )
-      rgb = attrs[3].to_i
-      @red   = rgb >> 16
-      @green = (rgb >> 8) & 0x000000FF
-      @blue  = rgb & 0x000000FF
-    end
-
-    def drawshape(viewer)
-      GL.Begin GL::POINTS
-
-      GL.Color3ub( @red, @green, @blue )
-      GL.Vertex3d( @position[0], @position[1], @position[2] )
-
-      GL.End
-    end
-  end
-
   class PointCloudShape < Cosmos::GlShape
 
     attr_accessor :pcd_file
+    attr_accessor :point_size
 
     def initialize()
       super( 0, 0, 0)
@@ -60,8 +42,12 @@ module Cosmos
 
       @last_start_index = 0
 
+      @point_size = 1.0
+
     end
     def drawshape(viewer)
+
+      GL.PointSize( @point_size )
       GL.Begin GL::POINTS
 
       color = [0,0,0]
@@ -77,6 +63,9 @@ module Cosmos
   end
 
   class PcdViewer < QtTool
+
+    slots 'set_point_size(int)'
+    slots 'set_point_color(bool)'
 
     def initialize(options)
       super(options) # MUST BE FIRST - All code before super is executed twice in RubyQt Based classes
@@ -262,11 +251,41 @@ module Cosmos
       # @top_layout.addWidget(@realtime_button_bar)
       @top_layout.addWidget(@realtime_button_bar)
 
+
+      @point_size_slider = Qt::Slider.new( self )
+      @point_size_slider.setRange( 1, 10 )
+      @point_size_slider.setOrientation( Qt::Horizontal )
+      connect( @point_size_slider, SIGNAL('sliderMoved(int)'), self, SLOT('set_point_size(int)'))
+      @top_layout.addWidget( @point_size_slider )
+
+      @color_group = Qt::GroupBox.new( tr('Point Color'), self )
+      @color_group_layout = Qt::HBoxLayout.new
+      @color_group.setLayout( @color_group_layout )
+      @top_layout.addWidget( @color_group )
+
+      @color_black_radio = Qt::RadioButton.new( tr('Black') )
+      @color_black_radio.setChecked( true )
+      @color_group_layout.addWidget( @color_black_radio )
+      @color_heat_radio = Qt::RadioButton.new( tr('Heat') )
+      @color_group_layout.addWidget( @color_heat_radio )
+
+      connect(@color_group,SIGNAL('toggled(bool)'),self,SLOT('set_point_color(bool)'))
+
+
       @viewer = GlViewer.new(self)
       @viewer.draw_axis = 15
       @viewer.scene = @scene
       # @viewer.selection_callback = method(:selection_callback)
       @top_layout.addWidget( @viewer )
+    end
+
+    def set_point_size( point_size )
+      @point_cloud.point_size = point_size
+      @viewer.update
+    end
+
+    def set_point_color( on )
+      puts "TOGGLED"
     end
 
     def keyPressEvent(event)
@@ -544,7 +563,12 @@ module Cosmos
     end
 
     def file_open
-      filename = Qt::FileDialog.getOpenFileName(self, "Open Scene File:", File.join(USERPATH, 'config', 'tools', 'opengl_builder'), "PCD Files (*.pcd);;All Files (*)")
+
+      filename = Qt::FileDialog.getOpenFileName(
+        self, "Open Scene File:",
+        File.join( USERPATH, 'config', 'tools', 'pcd_viewer' ),
+        "PCD Files (*.pcd);;All Files (*)")
+
       if !filename.to_s.empty?
         begin
           @point_cloud.pcd_file = PcdFile.parse!( filename )
@@ -558,10 +582,16 @@ module Cosmos
     end
 
     def file_export
-      filename = Qt::FileDialog.getSaveFileName(self, "Export Point Cloud to File", File.join(USERPATH, 'config', 'tools', 'opengl_builder', 'scene.txt'), "Scene Files (*.txt);;All Files (*)")
+
+      filename = Qt::FileDialog.getSaveFileName(
+        self, "Export Point Cloud to File",
+        File.join( USERPATH, 'config', 'tools', 'pcd_viewer', 'scene.txt'),
+        "Scene Files (*.pcd);;All Files (*)" )
+
       if !filename.to_s.empty?
         @point_cloud.pcd_file.write( filename )
       end
+
     end
 
     def view_perspective

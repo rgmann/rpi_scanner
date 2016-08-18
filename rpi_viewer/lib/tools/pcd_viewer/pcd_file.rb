@@ -177,14 +177,14 @@ class PcdFile
       super( 'VIEWPOINT', { min: 7, max: 7 } )
     end
     def process_args(file,args)
-      file.viewpoint[:transform][:x] = args[0]
-      file.viewpoint[:transform][:y] = args[1]
-      file.viewpoint[:transform][:z] = args[2]
+      file.viewpoint[:transform][:x] = args[0].to_f
+      file.viewpoint[:transform][:y] = args[1].to_f
+      file.viewpoint[:transform][:z] = args[2].to_f
 
-      file.viewpoint[:quaternion][:w] = args[3]
-      file.viewpoint[:quaternion][:x] = args[4]
-      file.viewpoint[:quaternion][:y] = args[5]
-      file.viewpoint[:quaternion][:z] = args[6]
+      file.viewpoint[:quaternion][:w] = args[3].to_f
+      file.viewpoint[:quaternion][:x] = args[4].to_f
+      file.viewpoint[:quaternion][:y] = args[5].to_f
+      file.viewpoint[:quaternion][:z] = args[6].to_f
     end
   end
 
